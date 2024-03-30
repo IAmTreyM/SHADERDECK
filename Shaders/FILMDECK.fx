@@ -517,8 +517,8 @@ VOID (FilmDeck, float4 film)
         // WHITE BALANCE ////////////////////////
         /////////////////////////////////////////
         ntemp = (N_TEMP > 0)
-              ? lerp(6500.0, 40000.0, N_TEMP * 0.01)
-              : lerp(3200.0, 6500.0, 1-abs(N_TEMP * 0.01));
+              ? lerp(6500.0, 40000.0, abs(N_TEMP * 0.01))
+              : lerp(6500.0,  2000.0, abs(N_TEMP * 0.01));
 
         luma  = GetLuma(film.rgb);
 
@@ -623,8 +623,8 @@ VOID (FilmDeck, float4 film)
         // WHITE BALANCE ////////////////////////
         /////////////////////////////////////////
         ptemp    = (P_TEMP > 0)
-                 ? lerp(6500.0, 40000.0, P_TEMP * 0.01)
-                 : lerp(3200.0, 6500.0, 1-abs(P_TEMP * 0.01));
+                 ? lerp(6500.0, 40000.0, abs(P_TEMP * 0.01))
+                 : lerp(6500.0,  2000.0, abs(P_TEMP * 0.01));
         luma     = GetLuma(film.rgb);
         film.rgb = lerp(WhiteBalance(saturate(film.rgb), ptemp, 6500), film.rgb, luma);
 

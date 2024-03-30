@@ -84,6 +84,54 @@ float3 AtlasBlurV (float3 color, sampler SamplerColor, float2 coord)
     return float4(color.rgb, 1);
 }
 
+float4 AtlasBlurH (float4 color, sampler SamplerColor, float2 coord)
+{
+    float weight[18] =
+    {
+        0.033245,     0.0659162217, 0.0636705814,
+        0.0598194658, 0.0546642566, 0.0485871646,
+        0.0420045997, 0.0353207015, 0.0288880982,
+        0.0229808311, 0.0177815511, 0.013382297,
+        0.0097960001, 0.0069746748, 0.0048301008,
+        0.0032534598, 0.0021315311, 0.0013582974
+    };
+	
+	color *= weight[0];
+	
+	[loop]
+	for(int i = 1; i < 18; ++i)
+	{
+		color += tex2D(SamplerColor, coord + float2(i * BUFFER_PIXEL_SIZE.x, 0.0)) * weight[i];
+		color += tex2D(SamplerColor, coord - float2(i * BUFFER_PIXEL_SIZE.x, 0.0)) * weight[i];
+	}
+
+    return color;
+}
+
+float4 AtlasBlurV (float4 color, sampler SamplerColor, float2 coord)
+{
+    float weight[18] =
+    {
+        0.033245,     0.0659162217, 0.0636705814,
+        0.0598194658, 0.0546642566, 0.0485871646,
+        0.0420045997, 0.0353207015, 0.0288880982,
+        0.0229808311, 0.0177815511, 0.013382297,
+        0.0097960001, 0.0069746748, 0.0048301008,
+        0.0032534598, 0.0021315311, 0.0013582974
+    };
+
+	color *= weight[0];
+	
+	[loop]
+	for(int i = 1; i < 18; ++i)
+	{
+		color += tex2D(SamplerColor, coord + float2(0.0, i * BUFFER_PIXEL_SIZE.y)) * weight[i];
+		color += tex2D(SamplerColor, coord - float2(0.0, i * BUFFER_PIXEL_SIZE.y)) * weight[i];
+	}
+
+    return color;
+}
+
 // Only run blur calc within downscaled image bounds (thanks for the help, kingeric1992)
 #ifndef _BLUR_BOUNDS
     #define _LOWER_BOUND 1.0
@@ -134,8 +182,8 @@ float Blur18H (float luma, sampler Samplerluma, float4 bounds, float width, floa
         if (((coord.x + i * BUFFER_PIXEL_SIZE.x) > bounds.y  ||
              (coord.x - i * BUFFER_PIXEL_SIZE.x) < bounds.x)) continue;
 
-        luma += tex2Dlod(Samplerluma, float4(coord + float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)) * kernel[i];
-        luma += tex2Dlod(Samplerluma, float4(coord - float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)) * kernel[i];
+        luma += tex2Dlod(Samplerluma, float4(coord + float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)).x * kernel[i];
+        luma += tex2Dlod(Samplerluma, float4(coord - float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)).x * kernel[i];
     }
 
     return luma;
@@ -178,8 +226,8 @@ float Blur18V (float luma, sampler Samplerluma, float4 bounds, float width, floa
         if (((coord.x + i * BUFFER_PIXEL_SIZE.x) > bounds.y  ||
              (coord.x - i * BUFFER_PIXEL_SIZE.x) < bounds.x)) continue;
 
-        luma += tex2Dlod(Samplerluma, float4(coord + float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)) * kernel[i];
-        luma += tex2Dlod(Samplerluma, float4(coord - float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)) * kernel[i];
+        luma += tex2Dlod(Samplerluma, float4(coord + float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)).a * kernel[i];
+        luma += tex2Dlod(Samplerluma, float4(coord - float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)).a * kernel[i];
     }
 
     return luma;
@@ -268,6 +316,94 @@ float3 Blur18V (float3 color, sampler SamplerColor, float width, float4 bounds, 
 
         color += tex2Dlod(SamplerColor, float4(coord + float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)).rgb * kernel[i];
         color += tex2Dlod(SamplerColor, float4(coord - float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)).rgb * kernel[i];
+    }
+
+    return color;
+}
+
+float4 Blur18H (float4 color, sampler SamplerColor, float width, float4 bounds, float2 coord)
+{
+    float offset[18] =
+    {
+        0.0,            1.4953705027, 3.4891992113,
+        5.4830312105,   7.4768683759, 9.4707125766,
+        11.4645656736, 13.4584295168, 15.4523059431,
+        17.4461967743, 19.4661974725, 21.4627427973,
+        23.4592916956, 25.455844494,  27.4524015179,
+        29.4489630909, 31.445529535,  33.4421011704
+    };
+
+    float kernel[18] =
+    {
+        0.033245,     0.0659162217, 0.0636705814,
+        0.0598194658, 0.0546642566, 0.0485871646,
+        0.0420045997, 0.0353207015, 0.0288880982,
+        0.0229808311, 0.0177815511, 0.013382297,
+        0.0097960001, 0.0069746748, 0.0048301008,
+        0.0032534598, 0.0021315311, 0.0013582974
+    };
+
+    color *= kernel[0];
+
+    [branch]
+    // Only run blur calc within downscaled image bounds
+    if ((coord.x > bounds.y || coord.x < bounds.x  ||
+         coord.y > bounds.w || coord.y < bounds.z))
+         discard;
+
+    [loop]
+    for(int i = 1; i < 18; ++i)
+    {
+        // Only run blur calc within downscaled image bounds
+        if (((coord.x + i * BUFFER_PIXEL_SIZE.x) > bounds.y  ||
+             (coord.x - i * BUFFER_PIXEL_SIZE.x) < bounds.x)) continue;
+
+        color += tex2Dlod(SamplerColor, float4(coord + float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)) * kernel[i];
+        color += tex2Dlod(SamplerColor, float4(coord - float2(offset[i] * BUFFER_PIXEL_SIZE.x, 0.0) * width, 0.0, 0.0)) * kernel[i];
+    }
+
+    return color;
+}
+
+float4 Blur18V (float4 color, sampler SamplerColor, float width, float4 bounds, float2 coord)
+{
+    float offset[18] =
+    {
+        0.0,            1.4953705027, 3.4891992113,
+        5.4830312105,   7.4768683759, 9.4707125766,
+        11.4645656736, 13.4584295168, 15.4523059431,
+        17.4461967743, 19.4661974725, 21.4627427973,
+        23.4592916956, 25.455844494,  27.4524015179,
+        29.4489630909, 31.445529535,  33.4421011704
+    };
+
+    float kernel[18] =
+    {
+        0.033245,     0.0659162217, 0.0636705814,
+        0.0598194658, 0.0546642566, 0.0485871646,
+        0.0420045997, 0.0353207015, 0.0288880982,
+        0.0229808311, 0.0177815511, 0.013382297,
+        0.0097960001, 0.0069746748, 0.0048301008,
+        0.0032534598, 0.0021315311, 0.0013582974
+    };
+
+    color *= kernel[0];
+
+    [branch]
+    // Only run blur calc within downscaled image bounds
+    if ((coord.x > bounds.y || coord.x < bounds.x  ||
+         coord.y > bounds.w || coord.y < bounds.z))
+         discard;
+
+    [loop]
+    for(int i = 1; i < 18; ++i)
+    {
+        // Only run blur calc within downscaled image bounds
+        if (((coord.x + i * BUFFER_PIXEL_SIZE.x) > bounds.y  ||
+             (coord.x - i * BUFFER_PIXEL_SIZE.x) < bounds.x)) continue;
+
+        color += tex2Dlod(SamplerColor, float4(coord + float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)) * kernel[i];
+        color += tex2Dlod(SamplerColor, float4(coord - float2(0.0, offset[i] * BUFFER_PIXEL_SIZE.y) * width, 0.0, 0.0)) * kernel[i];
     }
 
     return color;
@@ -562,4 +698,52 @@ float HalateV (float luma, sampler Samplerluma, float width, float4 bounds, floa
     }
 
     return luma;
+}
+
+// COLOR EDGES //////////////////////////////////
+float ColorEdgeH (float luma, sampler Samplerluma, float2 coord)
+{
+	float kernel[4] =
+    {
+        0.39894, 0.2959599993, 0.0045656525, 0.00000149278686458842
+    };
+
+    luma *= kernel[0];
+
+    [loop]
+    for(int i = 1; i < 4; ++i)
+    {
+        luma += GetLuma(tex2Dlod(Samplerluma, float4(coord + float2(i * BUFFER_PIXEL_SIZE.x, 0.0), 0.0, 0.0)).rgb) * kernel[i];
+        luma += GetLuma(tex2Dlod(Samplerluma, float4(coord - float2(i * BUFFER_PIXEL_SIZE.x, 0.0), 0.0, 0.0)).rgb) * kernel[i];
+    }
+
+    return luma;
+}
+
+float ColorEdgeV (float luma, sampler Samplerluma, float2 coord)
+{
+    float orig, blend;
+
+    orig = GetLuma(tex2D(Samplerluma, coord).rgb);
+
+	float kernel[4] =
+    {
+        0.39894, 0.2959599993, 0.0045656525, 0.00000149278686458842
+    };
+
+    luma *= kernel[0];
+
+    [loop]
+    for(int i = 1; i < 4; ++i)
+    {
+        luma += tex2Dlod(Samplerluma, float4(coord + float2(0.0, i * BUFFER_PIXEL_SIZE.y), 0.0, 0.0)).a * kernel[i];
+        luma += tex2Dlod(Samplerluma, float4(coord - float2(0.0, i * BUFFER_PIXEL_SIZE.y), 0.0, 0.0)).a * kernel[i];
+    }
+
+    //luma = pow(luma, 0.5);
+    //orig = pow(orig, 0.5);
+    luma = BlendDifference(orig, luma);
+    luma = step(0.775, pow(luma, 0.1));
+
+	return 1-luma;
 }

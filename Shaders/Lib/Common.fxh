@@ -39,7 +39,8 @@
 
 // UNIFORM VARIABLES //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-uniform float Timer < source = "timer"; >;
+uniform float Timer     < source = "timer"; >;
+uniform float FrameTime < source = "frametime"; >;
 
 
 // GLOBAL DEFINITIONS /////////////////////////////////////////////////////////////////////////////
@@ -156,102 +157,133 @@ float3 LogC4(float3 HDRLinear)
 }
 
 
-float3 RGBToHSL(float3 color)
+
+float3 RGBToHCV(float3 RGB)
 {
-	float3 hsl; // init to 0 to avoid warnings ? (and reverse if + remove first part)
-
-	float fmin = min(min(color.r, color.g), color.b);    //Min. value of RGB
-	float fmax = max(max(color.r, color.g), color.b);    //Max. value of RGB
-	float delta = fmax - fmin;             //Delta RGB value
-
-	hsl.z = (fmax + fmin) / 2.0; // Luminance
-
-	if (delta == 0.0)		//This is a gray, no chroma...
-	{
-		hsl.x = 0.0;	// Hue
-		hsl.y = 0.0;	// Saturation
-	}
-
-	else                                    //Chromatic data...
-	{
-		if (hsl.z < 0.5)
-			hsl.y = delta / (fmax + fmin); // Saturation
-		else
-			hsl.y = delta / (2.0 - fmax - fmin); // Saturation
-
-		float deltaR = (((fmax - color.r) / 6.0) + (delta / 2.0)) / delta;
-		float deltaG = (((fmax - color.g) / 6.0) + (delta / 2.0)) / delta;
-		float deltaB = (((fmax - color.b) / 6.0) + (delta / 2.0)) / delta;
-
-		if (color.r == fmax )
-			hsl.x = deltaB - deltaG; // Hue
-		else if (color.g == fmax)
-			hsl.x = (1.0 / 3.0) + deltaR - deltaB; // Hue
-		else if (color.b == fmax)
-			hsl.x = (2.0 / 3.0) + deltaG - deltaR; // Hue
-
-		if (hsl.x < 0.0)
-			hsl.x += 1.0; // Hue
-		else if (hsl.x > 1.0)
-			hsl.x -= 1.0; // Hue
-	}
-
-	return hsl;
+    // Based on work by Sam Hocevar and Emil Persson
+    float4 P = (RGB.g < RGB.b) ? float4(RGB.bg, -1.0, 2.0/3.0) : float4(RGB.gb, 0.0, -1.0/3.0);
+    float4 Q = (RGB.r < P.x) ? float4(P.xyw, RGB.r) : float4(RGB.r, P.yzx);
+    float C = Q.x - min(Q.w, Q.y);
+    float H = abs((Q.w - Q.y) / (6 * C + 1e-10) + Q.z);
+    return float3(H, C, Q.x);
 }
 
-float HueToRGB(float f1, float f2, float hue)
+
+float3 RGBToHSL(float3 RGB)
 {
-	if (hue < 0.0)
-		hue += 1.0;
-	else if (hue > 1.0)
-		hue -= 1.0;
-
-	float res;
-	if ((6.0 * hue) < 1.0)
-		res = f1 + (f2 - f1) * 6.0 * hue;
-	else if ((2.0 * hue) < 1.0)
-		res = f2;
-	else if ((3.0 * hue) < 2.0)
-		res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;
-	else
-		res = f1;
-
-	return res;
+    float3 HCV = RGBToHCV(RGB);
+    float L = HCV.z - HCV.y * 0.5;
+    float S = HCV.y / (1 - abs(L * 2 - 1) + 1e-10);
+    return float3(HCV.x, S, L);
 }
 
-float3 HSLToRGB(float3 hsl)
-{
-	float3 rgb;
 
-	if (hsl.y == 0.0)
-		rgb = float3(hsl.z, hsl.z, hsl.z); // Luminance
+// float3 RGBToHSL(float3 color)
+// {
+//     float3 hsl; // init to 0 to avoid warnings ? (and reverse if + remove first part)
 
-	else
-	{
-		float f2;
+//     float fmin = min(min(color.r, color.g), color.b);    //Min. value of RGB
+//     float fmax = max(max(color.r, color.g), color.b);    //Max. value of RGB
+//     float delta = fmax - fmin;             //Delta RGB value
 
-		if (hsl.z < 0.5)
-			f2 = hsl.z * (1.0 + hsl.y);
-		else
-			f2 = (hsl.z + hsl.y) - (hsl.y * hsl.z);
+//     hsl.z = (fmax + fmin) / 2.0; // Luminance
 
-		float f1 = 2.0 * hsl.z - f2;
+//     if (delta == 0.0)		//This is a gray, no chroma...
+//     {
+//         hsl.x = 0.0;	// Hue
+//         hsl.y = 0.0;	// Saturation
+//     }
 
-		rgb.r = HueToRGB(f1, f2, hsl.x + (1.0/3.0));
-		rgb.g = HueToRGB(f1, f2, hsl.x);
-		rgb.b= HueToRGB(f1, f2, hsl.x - (1.0/3.0));
-	}
+//     else                                    //Chromatic data...
+//     {
+//         if (hsl.z < 0.5)
+//             hsl.y = delta / (fmax + fmin); // Saturation
+//         else
+//             hsl.y = delta / (2.0 - fmax - fmin); // Saturation
 
-	return rgb;
-}
+//         float deltaR = (((fmax - color.r) / 6.0) + (delta / 2.0)) / delta;
+//         float deltaG = (((fmax - color.g) / 6.0) + (delta / 2.0)) / delta;
+//         float deltaB = (((fmax - color.b) / 6.0) + (delta / 2.0)) / delta;
 
-float3 HUEtoRGB(float H)
+//         if (color.r == fmax )
+//             hsl.x = deltaB - deltaG; // Hue
+//         else if (color.g == fmax)
+//             hsl.x = (1.0 / 3.0) + deltaR - deltaB; // Hue
+//         else if (color.b == fmax)
+//             hsl.x = (2.0 / 3.0) + deltaG - deltaR; // Hue
+
+//         if (hsl.x < 0.0)
+//             hsl.x += 1.0; // Hue
+//         else if (hsl.x > 1.0)
+//             hsl.x -= 1.0; // Hue
+//     }
+
+//     return hsl;
+// }
+
+// float HueToRGB(float f1, float f2, float hue)
+// {
+//     if (hue < 0.0)
+//         hue += 1.0;
+//     else if (hue > 1.0)
+//         hue -= 1.0;
+
+//     float res;
+//     if ((6.0 * hue) < 1.0)
+//         res = f1 + (f2 - f1) * 6.0 * hue;
+//     else if ((2.0 * hue) < 1.0)
+//         res = f2;
+//     else if ((3.0 * hue) < 2.0)
+//         res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;
+//     else
+//         res = f1;
+
+//     return res;
+// }
+
+
+// float3 HSLToRGB(float3 hsl)
+// {
+//     float3 rgb;
+
+//     if (hsl.y == 0.0)
+//         rgb = float3(hsl.z, hsl.z, hsl.z); // Luminance
+
+//     else
+//     {
+//         float f2;
+
+//         if (hsl.z < 0.5)
+//             f2 = hsl.z * (1.0 + hsl.y);
+//         else
+//             f2 = (hsl.z + hsl.y) - (hsl.y * hsl.z);
+
+//         float f1 = 2.0 * hsl.z - f2;
+
+//         rgb.r = HueToRGB(f1, f2, hsl.x + (1.0/3.0));
+//         rgb.g = HueToRGB(f1, f2, hsl.x);
+//         rgb.b= HueToRGB(f1, f2, hsl.x - (1.0/3.0));
+//     }
+
+//     return rgb;
+// }
+
+
+float3 HUEToRGB(float H)
 {
     float R = abs(H * 6 - 3) - 1;
     float G = 2 - abs(H * 6 - 2);
     float B = 2 - abs(H * 6 - 4);
 
     return saturate(float3(R,G,B));
+}
+
+
+float3 HSLToRGB(float3 HSL)
+{
+    float3 RGB = HUEToRGB(HSL.x);
+    float  C = (1 - abs(2 * HSL.z - 1)) * HSL.y;
+    return (RGB - 0.5) * C + HSL.z;
 }
 
 
@@ -290,14 +322,14 @@ float3 RGBToHSV(float3 RGB)
 
 float3 HSVToRGB(float3 HSV)
 {
-    float3 RGB = HUEtoRGB(HSV.x);
+    float3 RGB = HUEToRGB(HSV.x);
 
     return ((RGB - 1) * HSV.y + 1) * HSV.z;
 }
 
 float3 ColorTemperatureToRGB(float temperatureInKelvins)
 {
-	float3 retColor;
+    float3 retColor;
 
     temperatureInKelvins = clamp(temperatureInKelvins, 1000.0, 40000.0) / 100.0;
 
@@ -309,25 +341,25 @@ float3 ColorTemperatureToRGB(float temperatureInKelvins)
 
     else
     {
-    	float t = temperatureInKelvins - 60.0;
+        float t = temperatureInKelvins - 60.0;
         retColor.r = clamp(1.29293618606274509804 * pow(abs(t), -0.1332047592), 0.0, 30000.0);
         retColor.g = clamp(1.12989086089529411765 * pow(abs(t), -0.0755148492), 0.0, 30000.0);
     }
 
     if (temperatureInKelvins >= 66.0)
-	{
-		retColor.b = 1.0;
-	}
+    {
+        retColor.b = 1.0;
+    }
         
     else if (temperatureInKelvins <= 19.0)
-	{
-		retColor.b = 0.0;
-	}
+    {
+        retColor.b = 0.0;
+    }
         
     else
-	{
-		retColor.b = clamp(0.54320678911019607843 * log(temperatureInKelvins - 10.0) - 1.19625408914, 0.0, 30000.0);
-	}
+    {
+        retColor.b = clamp(0.54320678911019607843 * log(temperatureInKelvins - 10.0) - 1.19625408914, 0.0, 30000.0);
+    }
         
     return retColor;
 }
@@ -339,30 +371,30 @@ float3 Kelvin(float3 color, float kelvin)
 
     ktemp     = ColorTemperatureToRGB(kelvin);
 
-	luma      = GetLuma(color);
+    luma      = GetLuma(color);
 
-	result    = color * ktemp;
+    result    = color * ktemp;
 
-	hsl       = RGBToHSL(result);
-	lumablend = HSLToRGB(float3(hsl.x, hsl.y, luma));
+    hsl       = RGBToHSL(result);
+    lumablend = HSLToRGB(float3(hsl.x, hsl.y, luma));
 
-	return lerp(result, lumablend, 0.75);
+    return lerp(result, lumablend, 0.75);
 }
 
 float3 WhiteBalance(float3 color, float scene, float cam)
 {
-    float kelvin, luma;
-
-    // Normalize kelvin input (6500 = no change to image)
-    kelvin = 6500 + ((6500 - cam) + (scene - 6500));
+    float luma;
 
     // Store image luma
     luma   = GetLuma(color);
 
+    // Apply the scene temperature
+    color /= ColorTemperatureToRGB(cam); // Apply color temp
+
     // Apply the whitebalance
-    color *= ColorTemperatureToRGB(kelvin); // Apply color temp
+    color *= ColorTemperatureToRGB(scene); // Apply color temp
     color /= GetLuma(color); // Luma preservation
-	color *= luma; // Luma preservation
+    color *= luma; // Luma preservation
 
     return color;
 }
@@ -446,6 +478,35 @@ float3 PurkinjeEffect(float3 color, float blend)
     return lerp(color, ScotopicLuma(color) * lerp(0.5, (NMToRGB(475) * 0.5), 0.25), blend);
 }
 
+// Original function written by Pascal Gilcher
+float DepthEdges(float2 uv)
+{
+    float2 loc;
+    float  edge_depth;
+    int    id;
+
+    int gweights[9] =
+    {
+        1,   2,  1,
+        2, -12,  2,
+        1,   2,  1
+    };
+
+    edge_depth = 0;
+
+    for(int x = -1; x <= 1; x++)
+    {
+        for(int y = -1; y <= 1; y++)
+        {
+            loc         = float2(x, y) * (float2((1.0 / BUFFER_SCREEN_SIZE.x), (1.0 / BUFFER_SCREEN_SIZE.x) * BUFFER_ASPECT_RATIO));
+            id          = (x + 1) + (y + 1) * 3;
+            edge_depth += pow(smoothstep(0.0, 0.5, ReShade::GetLinearizedDepth(uv + loc)), 0.25) * gweights[id];
+        }
+    }
+
+    return saturate(1-abs(edge_depth) * 40.0);
+}
+
 // Bicubic function written by kingeric1992
 float4 tex2Dbicub(sampler texSampler, float2 coord)
 {
@@ -516,15 +577,15 @@ float4 tex2Dbicub2(sampler texSampler, float2 coord, float2 inscale)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 texture BACKBUFFER               : COLOR;
 texture DEPTHBUFFER              : DEPTH;
-sampler TextureColor             { Texture = BACKBUFFER; AddressU = BORDER; AddressV = BORDER; AddressW = BORDER; };
-sampler TextureColorMirror       { Texture = BACKBUFFER; AddressU = MIRROR; AddressV = MIRROR; AddressW = MIRROR; };
+sampler TextureColor             { Texture = BACKBUFFER;  AddressU = BORDER; AddressV = BORDER; AddressW = BORDER; };
+sampler TextureColorMirror       { Texture = BACKBUFFER;  AddressU = MIRROR; AddressV = MIRROR; AddressW = MIRROR; };
 
 
 // VERTEX SHADER //////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void VS_Tri(in uint id : SV_VertexID, out float4 vpos : SV_Position, out float2 uv : TEXCOORD)
 {
-	uv.x = (id == 2) ? 2.0 : 0.0;
-	uv.y = (id == 1) ? 2.0 : 0.0;
-	vpos = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
+    uv.x = (id == 2) ? 2.0 : 0.0;
+    uv.y = (id == 1) ? 2.0 : 0.0;
+    vpos = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
 }

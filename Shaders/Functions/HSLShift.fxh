@@ -22,16 +22,16 @@ float3 HSLShift(float3 color)
     int base;
     for(int i=0; i<8; i++) if(node[i].a < hsl.r*360.0 )base = i;
 
-    float w = saturate(abs(hsl.r*360.0-node[base].a)/(node[base+1].a-node[base].a));
+    float w = saturate(abs(hsl.r * 360.0 - node[base].a) / (node[base+1].a - node[base].a));
 
     float3 H0 = RGBToHSL(node[base].rgb);
-    float3 H1 = RGBToHSL(node[base+1].rgb);
+    float3 H1 = RGBToHSL(node[base + 1].rgb);
 
     H1.x += (H1.x < H0.x)? 1.0:0.0;
 
     float3 shift = frac(lerp( H0, H1 , w));
-    w = max( hsl.g, 0.0)*max( 1.0-hsl.b, 0.0);
-    shift.b = (shift.b - 0.5)*(pow(w, HSL_Threshold_Curve)*(1.0-HSL_Threshold_Base)+HSL_Threshold_Base)*2.0;
+    w = max(hsl.g, 0.0) * max(1.0-hsl.b, 0.0);
+    shift.b = (shift.b - 0.5) * (pow(w, HSL_Threshold_Curve) * (1.0-HSL_Threshold_Base) + HSL_Threshold_Base) * 2.0;
 
-    return saturate(HSLToRGB(saturate(float3(shift.r, hsl.g*(shift.g*2.0), hsl.b*(1.0+shift.b)))));
+    return saturate(HSLToRGB(saturate(float3(shift.r, hsl.g * (shift.g * 2.0), hsl.b * (1.0 + shift.b)))));
 }
