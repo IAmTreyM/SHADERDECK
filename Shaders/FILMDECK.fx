@@ -31,8 +31,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #define   CATEGORIZE
 #include "ReShade.fxh"
-#include "SHADERDECK/Lib/Common.fxh"
-#include "SHADERDECK/FILMDECK/Setup.fxh"
+#include "Include/Lib/Common.fxh"
+#include "Include/FILMDECK/Setup.fxh"
 
 
 // USER INTERFACE /////////////////////////////////////////////////////////////////////////////////
@@ -281,14 +281,14 @@ UICL_MSG      (INFO4, 0,
 
 // FUNCTIONS //////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#include "SHADERDECK/Functions/AVGen.fxh"
-#include "SHADERDECK/Functions/3DLUT.fxh"
-#include "SHADERDECK/Functions/Contrast.fxh"
-#include "SHADERDECK/Functions/BlendingModes.fxh"
-#include "SHADERDECK/Functions/GaussianBlurBounds.fxh"
-#include "SHADERDECK/Functions/Grain.fxh"
-#include "SHADERDECK/Functions/HSLShift.fxh"
-#include "SHADERDECK/Functions/TriDither.fxh"
+#include "Include/Functions/AVGen.fxh"
+#include "Include/Functions/3DLUT.fxh"
+#include "Include/Functions/Contrast.fxh"
+#include "Include/Functions/BlendingModes.fxh"
+#include "Include/Functions/GaussianBlurBounds.fxh"
+#include "Include/Functions/Grain.fxh"
+#include "Include/Functions/HSLShift.fxh"
+#include "Include/Functions/TriDither.fxh"
 
 
 // RENDERTARGETS //////////////////////////////////////////////////////////////////////////////////
