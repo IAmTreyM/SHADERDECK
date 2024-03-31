@@ -28,7 +28,6 @@
 #define   CATEGORIZE
 #include "ReShade.fxh"
 #include "Include/Lib/Common.fxh"
-#include "Include/FILMDECK/Setup.fxh"
 
 // USER INTERFACE /////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,9 +77,17 @@ UI_INT_S (BLEND, "Overall Blend", "(Unrealistic) Simply mixes fog with the origi
 
 // RENDERTARGETS //////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-RENDERTARGET(Copy,  BUFFER_WIDTH, BUFFER_HEIGHT, INTERNAL_DEPTH, MIRROR)
-RENDERTARGET(Blur1, BUFFER_WIDTH, BUFFER_HEIGHT, RGBA16F,        MIRROR)
-RENDERTARGET(Blur2, BUFFER_WIDTH, BUFFER_HEIGHT, RGBA16F,        MIRROR)
+#if   (BUFFER_COLOR_BIT_DEPTH == 8)
+    #define _COPY_BIT_DEPTH RGBA8
+#elif (BUFFER_COLOR_BIT_DEPTH == 10)
+    #define _COPY_BIT_DEPTH RGB10A2
+#else
+    #define _COPY_BIT_DEPTH RGBA16
+#endif
+
+RENDERTARGET(Copy,  BUFFER_WIDTH, BUFFER_HEIGHT, _COPY_BIT_DEPTH, MIRROR)
+RENDERTARGET(Blur1, BUFFER_WIDTH, BUFFER_HEIGHT,  RGBA16F,        MIRROR)
+RENDERTARGET(Blur2, BUFFER_WIDTH, BUFFER_HEIGHT,  RGBA16F,        MIRROR)
 
 
 // SHADERS ///////////////////////////////////////////////////////////////////////////////////////

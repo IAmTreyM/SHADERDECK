@@ -63,7 +63,7 @@ SAMPLER     (TextureCook, TexCook)
     #define LET_ME_COOK 0
 #endif
 
-#include "SHADERDECK/FILMDECK/Custom.fxh"
+#include "Include/FILMDECK/Custom.fxh"
 #define __PATREON_NAG \
     " For the full set of film profiles: https://patreon.com/TreyM"
 
@@ -343,7 +343,7 @@ FilmStruct Generic16mm()
 
 // GLOBAL ARRAY WORKAROUND ////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#define FILM_PROFILES "SHADERDECK/FILMDECK/ProfileArrays.fxh"
+#define FILM_PROFILES "Include/FILMDECK/ProfileArrays.fxh"
 
 
 // CUSTOM PRESET SUPPORT MACROS ///////////////////////////////////////////////////////////////////
